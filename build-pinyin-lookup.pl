@@ -128,6 +128,7 @@ my %ctx = (
     }
 );
 
+my $bpmf_to_pinyin = {};
 for (my $i = 0; $i < @$dict; $i++) {
     my $entry = $dict->[$i];
     my $title = $entry->{title};
@@ -137,9 +138,30 @@ for (my $i = 0; $i < @$dict; $i++) {
             my $pinyin_tokens = analyze_pinyin_field($pinyin);
             insert_index( \%ctx, PINYIN_TYPE->{$lang}{$field}, $title, $pinyin_tokens);
         }
+        if ($lang eq "a" and my $bpmf = $heteronym->{bopomofo} and my $pinyin = $heteronym->{pinyin}) {
+            my $pinyin_tokens = analyze_pinyin_field($pinyin);
+            my $bpmf_tokens   = [split(/[ ˊˇˋ˙]/, $bpmf)];
+            if ( @$bpmf_tokens == @$pinyin_tokens ) {
+                for my $i ( 0 .. $#$bpmf_tokens ) {
+                    $bpmf_tokens->[$i] =~ s/\P{Bopomofo}//g;
+                    $bpmf_to_pinyin->{ $bpmf_tokens->[$i] } //= $pinyin_tokens->[$i];
+                }
+            }
+        }
     }
 }
 
 sort_index( \%ctx );
 produce_lookup( \%ctx );
 
+
+
+if (%$bpmf_to_pinyin) {
+    open my $fh, ">:utf8", "bopomofo-to-pinyin.tsv";
+    for (sort keys %$bpmf_to_pinyin) {
+        next if /[ㄚㄛㄜㄝㄞㄟㄠㄡㄢㄣㄤㄥㄦ]ㄦ$/;
+        my $s = $_ . "\t" . $bpmf_to_pinyin->{$_};
+        say $fh $s;
+    }
+    close $fh;
+}
