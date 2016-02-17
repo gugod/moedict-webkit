@@ -174,13 +174,11 @@ window.play-audio = (el, url) ->
     $el.parent('.audioBlock').addClass('playing')
     urls = [url]
     urls.unshift url.replace(/(ogg|opus)$/ 'mp3') if url is /(ogg|opus)$/ and can-play-mp3! and not isGecko
-    audio = new window.Howl { +buffer, urls, onend: done, onloaderror: done, onplay: -> $el.removeClass('icon-play').removeClass('icon-spinner').addClass('icon-stop').show!
+    audio = new window.Howl { +buffer, src: urls, urls, onend: done, onloaderror: done, onplay: -> $el.removeClass('icon-play').removeClass('icon-spinner').addClass('icon-stop').show!
     }
     audio.play!
     player := audio
   return play! if window.Howl
-  <- getScript \js/howler.js
-  return play!
 
 window.show-info = ->
   ref = window.open \about.html \_blank \location=no
@@ -574,6 +572,9 @@ window.do-load = ->
 
     <- React.render React.createElement(React.View.UserPref), $(\#user-pref).0
 
+    $('.share .btn').each ->
+      $(@).attr href: $(@).data(\href).replace(/__TEXT__/, prevId) + encodeURIComponent encodeURIComponent "#{ HASH-OF[LANG].replace(/^#/, '') }#prevId"
+
     window.scroll-to 0 0
     $h1
     .css \visibility \visible
@@ -714,7 +715,9 @@ function render-taxonomy (lang, taxonomy)
   for taxo in (if taxonomy instanceof Array then taxonomy else [taxonomy])
     if typeof taxo is \string
       $ul.append $(\<li/> role: \presentation).append $(
-        \<a/> class: "lang-option #lang" href: "./#{ HASH-OF[lang] }=#taxo"
+        \<a/> class: "lang-option #lang" href: "#{
+          if isCordova or not \onhashchange of window then '#' else './'
+        }#{ HASH-OF[lang] }=#taxo"
       ).text(taxo)
     else for label, submenu of taxo
       $ul.append $(\<li/> class: \dropdown-submenu).append(
@@ -853,6 +856,7 @@ const SIMP-TRAD = require('./js/simp-trad.js')
 
 function b2g (str='')
   return str.replace(/台([北中南東灣語])/g '臺$1') unless LANG in <[ a c ]> and str isnt /^@/
+  return str if " 叁 勅 疎 効 嘷 凥 凟 擧 彛 煅 厮 勠 叶 湼 袴 飱 顋 呪 蟮 眦 幷 滙 庄 鼗 厠 彠 覩 歺 唣 廵 榘 幞 郄 峯 恒 迹 麽 羣 讁 攵 緜 浜 彡 夊 夂 厶 广 廴 丶 台 ".index-of(str) >= 0
   rv = ''
   for char in (str / '')
     idx = SIMP-TRAD.index-of(char)
